@@ -1,0 +1,41 @@
+name: Jekyll Docker CI
+
+on:
+  push:
+    branches:
+      - master # Trigger the workflow on pushes to the master branch
+  pull_request:
+    branches:
+      - master # Trigger the workflow on pull requests to the master branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2 # Check out the repository code
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1 # Set up Docker Buildx for multi-platform builds
+
+    - name: Build Jekyll site
+      run: |
+        docker build -t jekyll-site .
+        docker run --rm -v $(pwd)/_site:/srv/jekyll -v $(pwd)/_config.yml:/srv/jekyll/_config.yml jekyll-site jekyll build
+      # Build the Jekyll site using Docker and output to the _site directory
+
+    - name: Upload Jekyll site artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: jekyll-site
+        path: _site
+      # Upload the built Jekyll site as an artifact for later use
+
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/master' # Only deploy on pushes to the master branch
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./_site
+      # Deploy the built Jekyll site to GitHub Pages
